@@ -157,11 +157,11 @@ export async function POST(request: Request) {
     const result = await callGemini(contents, depth);
 
     // Lưu lịch sử theo trình duyệt. Nếu lưu thất bại thì phiên vẫn tiếp tục bình thường.
-    let browserId = readBrowserId(request);
+    let browserId = await readBrowserId(request);
     let setCookie: string | null = null;
     if (!browserId) {
-      browserId = newBrowserId();
-      setCookie = browserCookieHeader(browserId);
+      browserId = await newBrowserId();
+      setCookie = await browserCookieHeader(browserId);
     }
     let sessionId: string | null = null;
     try {

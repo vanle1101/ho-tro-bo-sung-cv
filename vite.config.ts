@@ -58,6 +58,13 @@ export default defineConfig(async () => {
         ? { watch: { useFsEvents: false, usePolling: true } }
         : {}),
     },
+    ssr: {
+      external: ["pg", "pg-types", "pg-int8", "drizzle-orm/node-postgres"],
+      noExternal: [],
+    },
+    optimizeDeps: {
+      exclude: ["pg", "pg-types", "pg-int8", "drizzle-orm"],
+    },
     plugins: [
       vinext(),
       sites(),

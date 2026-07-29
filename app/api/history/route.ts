@@ -4,7 +4,7 @@ export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   try {
-    const browserId = readBrowserId(request);
+    const browserId = await readBrowserId(request);
     if (!browserId) return Response.json({ sessions: [] });
     const rows = await withDb(async (db) => {
       const result = await db.query(

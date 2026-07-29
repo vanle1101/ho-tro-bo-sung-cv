@@ -10,7 +10,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const browserId = readBrowserId(request);
+    const browserId = await readBrowserId(request);
     if (!browserId || !UUID_RE.test(id)) {
       return Response.json({ error: "Không tìm thấy phiên này." }, { status: 404 });
     }
@@ -51,7 +51,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const browserId = readBrowserId(request);
+    const browserId = await readBrowserId(request);
     if (!browserId || !UUID_RE.test(id)) {
       return Response.json({ error: "Không tìm thấy phiên này." }, { status: 404 });
     }
