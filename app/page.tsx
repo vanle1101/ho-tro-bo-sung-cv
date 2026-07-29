@@ -44,6 +44,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [answer, setAnswer] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [depth, setDepth] = useState<"quick" | "standard" | "deep">("standard");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   useEffect(() => {
@@ -115,6 +116,7 @@ export default function Home() {
     const form = new FormData();
     form.append("cv", file);
     form.append("role", role.trim());
+    form.append("depth", depth);
     try {
       const response = await fetch("/api/review", { method: "POST", body: form });
       const data = await response.json();
@@ -144,6 +146,7 @@ export default function Home() {
       const form = new FormData();
       form.append("cv", file);
       form.append("role", role.trim());
+      form.append("depth", depth);
       form.append("answer", nextAnswer);
       form.append("history", JSON.stringify(history));
       const response = await fetch("/api/review", { method: "POST", body: form });
@@ -237,6 +240,15 @@ export default function Home() {
               onChange={(e) => setRole(e.target.value)}
               placeholder="Ví dụ: Thực tập sinh Kiểm toán"
             />
+          </label>
+
+          <label className="field">
+            <span>Mức độ phân tích</span>
+            <select value={depth} onChange={(e) => setDepth(e.target.value as "quick" | "standard" | "deep")}>
+              <option value="quick">Nhanh — phản hồi tức thì, phù hợp thử lần đầu</option>
+              <option value="standard">Tiêu chuẩn — cân bằng tốc độ và chiều sâu (mặc định)</option>
+              <option value="deep">Sâu — hỏi kỹ nhất, phù hợp hồ sơ quan trọng</option>
+            </select>
           </label>
 
           <button className="button button-green start-button" disabled={!canStart || loading} onClick={startReview}>

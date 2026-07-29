@@ -24,13 +24,20 @@ function firstTurnText(role: string, fileName: string) {
   ].join("\n\n");
 }
 
-async function callGemini(contents: GeminiContent[]) {
+const DEPTH_BUDGET: Record<string, number> = {
+  quick: 0,
+  standard: 8192,
+  deep: 24576,
+};
+
+async function callGemini(contents: GeminiContent[], depth = "standard") {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("MISSING_API_KEY");
 
   const model = process.env.GEMINI_MODEL;
   if (!model) throw new Error("MISSING_MODEL");
-  console.log(`[review] using model: ${model}`);
+  const thinkingBudget = DEPTH_BUDGET[depth] ?? DEPTH_BUDGET.standard;
+  console.log(`[review] using model: ${model} depth: ${depth} thinkingBudget: ${thinkingBudget}`);
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
@@ -43,6 +50,9 @@ async function callGemini(contents: GeminiContent[]) {
       body: JSON.stringify({
         system_instruction: { parts: [{ text: GVHD_SYSTEM_PROMPT }] },
         contents,
+        generationConfig: {
+          thinkingConfig: { thinkingBudget },
+        },
       }),
     },
   );
@@ -75,6 +85,8 @@ export async function POST(request: Request) {
     const role = String(form.get("role") || "").trim();
     const answer = String(form.get("answer") || "").trim();
     const historyRaw = String(form.get("history") || "");
+    const rawDepth = String(form.get("depth") || "").trim();
+    const depth = ["quick", "standard", "deep"].includes(rawDepth) ? rawDepth : "standard";
 
     if (!(file instanceof File)) {
       return Response.json({ error: "Em chưa gửi file CV." }, { status: 400 });
@@ -140,7 +152,7 @@ export async function POST(request: Request) {
       contents.push({ role: "user", parts: [{ text: answer }] });
     }
 
-    return Response.json(await callGemini(contents));
+    return Response.json(await callGemini(contents, depth));
   } catch (error) {
     const message = error instanceof Error ? error.message : "UNKNOWN";
     if (message === "MISSING_API_KEY") {
