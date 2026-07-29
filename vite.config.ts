@@ -70,6 +70,22 @@ export default defineConfig(async () => {
     plugins: [
       vinext(),
       sites(),
+      {
+        name: "exclude-server-modules",
+        apply: "serve",
+        resolveId(id) {
+          // Exclude server-only modules from client-side bundling
+          if (id.includes("lib/db") || id.includes("lib/db.ts")) {
+            return { id, external: true, moduleSideEffects: false };
+          }
+        },
+        load(id) {
+          // Return empty module for server-only imports in client env
+          if (id.includes("lib/db")) {
+            return "export const withDb = () => {}; export const readBrowserId = () => {}; export const newBrowserId = () => {}; export const browserCookieHeader = () => {};";
+          }
+        },
+      },
     ],
   };
 });
