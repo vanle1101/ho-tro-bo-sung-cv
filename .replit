@@ -50,3 +50,6 @@ GEMINI_MODEL = "gemini-3.6-flash"
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 180000
+
+[nix]
+channel = "stable-25_05"
