@@ -14,6 +14,12 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 const localBindingConfig = {
   main: "./worker/index.ts",
   compatibility_flags: ["nodejs_compat"],
+  // Forward app configuration from the host environment (Replit Secrets)
+  // into the local worker runtime, which does not inherit host env vars.
+  vars: {
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY ?? "",
+    GEMINI_MODEL: process.env.GEMINI_MODEL ?? "",
+  },
   d1_databases: d1
     ? [
         {

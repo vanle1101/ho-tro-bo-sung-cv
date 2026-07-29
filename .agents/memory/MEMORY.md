@@ -1,0 +1,1 @@
+- [Gemini migration](gemini-migration.md) — app uses Gemini (stateless, PDF-only, model from GEMINI_MODEL secret, no hardcoded fallback); user rejected OpenAI.

@@ -43,7 +43,6 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [answer, setAnswer] = useState("");
-  const [responseId, setResponseId] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
@@ -55,9 +54,9 @@ export default function Home() {
 
   function chooseFile(next?: File) {
     if (!next) return;
-    const allowed = /\.(pdf|doc|docx)$/i.test(next.name);
+    const allowed = /\.pdf$/i.test(next.name);
     if (!allowed) {
-      setError("CV phải là file PDF, DOC hoặc DOCX.");
+      setError("CV phải là file PDF.");
       return;
     }
     if (next.size > 10 * 1024 * 1024) {
@@ -90,7 +89,6 @@ export default function Home() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Không thể bắt đầu phiên hướng dẫn.");
       setMessages([{ role: "assistant", text: data.text }]);
-      setResponseId(data.responseId);
       setSubmitted(true);
       window.setTimeout(() => {
         document.getElementById("phien-huong-dan")?.scrollIntoView({ behavior: "smooth" });
@@ -105,21 +103,22 @@ export default function Home() {
   async function sendAnswer(event: FormEvent) {
     event.preventDefault();
     const nextAnswer = answer.trim();
-    if (!nextAnswer || !responseId || loading) return;
+    if (!nextAnswer || !file || loading) return;
+    const history = messages;
     setMessages((current) => [...current, { role: "user", text: nextAnswer }]);
     setAnswer("");
     setLoading(true);
     setError("");
     try {
-      const response = await fetch("/api/review", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answer: nextAnswer, previousResponseId: responseId }),
-      });
+      const form = new FormData();
+      form.append("cv", file);
+      form.append("role", role.trim());
+      form.append("answer", nextAnswer);
+      form.append("history", JSON.stringify(history));
+      const response = await fetch("/api/review", { method: "POST", body: form });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Không thể gửi câu trả lời.");
       setMessages((current) => [...current, { role: "assistant", text: data.text }]);
-      setResponseId(data.responseId);
     } catch (nextError) {
       setMessages((current) => current.slice(0, -1));
       setAnswer(nextAnswer);
@@ -132,7 +131,6 @@ export default function Home() {
   function resetSession() {
     setSubmitted(false);
     setMessages([]);
-    setResponseId("");
     setAnswer("");
     setError("");
   }
@@ -186,7 +184,7 @@ export default function Home() {
             onDragLeave={() => setIsDragging(false)}
             onDrop={onDrop}
           >
-            <input type="file" accept=".pdf,.doc,.docx" onChange={onFileChange} />
+            <input type="file" accept=".pdf" onChange={onFileChange} />
             <span className="file-icon" aria-hidden="true">{file ? "✓" : "↑"}</span>
             {file ? (
               <>
@@ -196,7 +194,7 @@ export default function Home() {
             ) : (
               <>
                 <strong>Thả file CV vào đây</strong>
-                <span>PDF hoặc Word · tối đa 10 MB</span>
+                <span>PDF · tối đa 10 MB</span>
               </>
             )}
           </label>
