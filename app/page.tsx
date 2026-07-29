@@ -56,7 +56,7 @@ export default function Home() {
     if (!next) return;
     const allowed = /\.pdf$/i.test(next.name);
     if (!allowed) {
-      setError("CV phải là file PDF.");
+      setError("CV phải là file PDF. Nếu CV đang là file Word (.doc/.docx), em hãy mở file rồi chọn Save as / Xuất ra PDF và tải lại nhé.");
       return;
     }
     if (next.size > 10 * 1024 * 1024) {
@@ -194,7 +194,7 @@ export default function Home() {
             ) : (
               <>
                 <strong>Thả file CV vào đây</strong>
-                <span>PDF · tối đa 10 MB</span>
+                <span>PDF · tối đa 10 MB · File Word cần chuyển sang PDF trước khi tải lên</span>
               </>
             )}
           </label>
