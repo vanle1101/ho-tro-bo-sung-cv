@@ -729,3 +729,31 @@ body { animation: page-in .45s ease-out both; }
     animation: none !important;
   }
 }
+
+/* ===== Lịch sử hồ sơ ===== */
+.history-section {
+  padding: 58px clamp(24px, 7vw, 110px);
+  border-bottom: 1px solid var(--line);
+}
+.history-heading { max-width: 620px; margin-bottom: 28px; }
+.history-heading h2 { font-family: var(--font-serif); font-weight: 400; font-size: 32px; margin-bottom: 10px; }
+.history-heading p { color: rgba(31,42,36,.72); font-size: 15px; margin: 0; }
+.history-list { display: grid; gap: 14px; }
+.history-list article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 18px 22px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(251,250,246,.9);
+}
+.history-list article.current { border-color: var(--green); box-shadow: 0 0 0 1px var(--green); }
+.history-info { display: grid; gap: 4px; }
+.history-info strong { font-size: 15px; }
+.history-info span { font-size: 13px; color: rgba(31,42,36,.66); }
+.history-actions { display: flex; align-items: center; gap: 18px; }
+.history-actions .button { padding: 10px 18px; font-size: 13px; }
+.history-delete { color: var(--red); }

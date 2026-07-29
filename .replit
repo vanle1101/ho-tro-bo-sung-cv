@@ -1,6 +1,6 @@
 entrypoint = "package.json"
 run = "npm run dev -- --host 0.0.0.0 --port 3000"
-modules = ["nodejs-22"]
+modules = ["nodejs-22", "postgresql-16"]
 
 [deployment]
 build = "npm run build"

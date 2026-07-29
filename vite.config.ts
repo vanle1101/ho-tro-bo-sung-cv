@@ -19,6 +19,7 @@ const localBindingConfig = {
   vars: {
     GEMINI_API_KEY: process.env.GEMINI_API_KEY ?? "",
     GEMINI_MODEL: process.env.GEMINI_MODEL ?? "",
+    DATABASE_URL: process.env.DATABASE_URL ?? "",
   },
   d1_databases: d1
     ? [

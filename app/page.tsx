@@ -8,6 +8,22 @@ type ChatMessage = {
   text: string;
 };
 
+type HistoryItem = {
+  id: string;
+  fileName: string;
+  role: string;
+  depth: string;
+  updatedAt: string;
+  messageCount: number;
+};
+
+function base64ToFile(base64: string, fileName: string): File {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return new File([bytes], fileName, { type: "application/pdf" });
+}
+
 const stages = [
   ["01", "Đọc & hiểu hồ sơ", "Xác định em là ai, muốn theo vị trí nào và CV đang chứng minh được điều gì."],
   ["02", "Phỏng vấn để hiểu em", "Hỏi sâu từng dữ liệu còn thiếu, không tự suy diễn hoặc điền hộ."],
@@ -28,7 +44,6 @@ const faqs = [
   ["Cô có viết lại toàn bộ CV ngay không?", "Không. Cô chỉ viết lại sau khi đã hiểu em trực tiếp làm gì và có đủ dữ liệu để viết trung thực."],
   ["Project sinh viên có đáng đưa vào CV không?", "Có, nếu project chứng minh được kiến thức, quyết định, công cụ, đầu ra và phần việc riêng của em. Chỉ ghi tên đề tài thì chưa đủ."],
   ["Không có số liệu kết quả thì làm sao?", "Dùng kết quả định tính có thể kiểm chứng: báo cáo, mô hình, dashboard, bộ dữ liệu đã làm sạch, lỗi phát hiện hoặc đánh giá của giảng viên."],
-  ["Khi nào cô sẽ hỏi về cách dùng AI?", "Chỉ khi CV hoặc câu trả lời của em có nhắc đến AI, hoặc vị trí ứng tuyển thực sự cần năng lực đó. Đây không phải phần kiểm tra bắt buộc cho mọi hồ sơ."],
 ];
 
 function Arrow({ direction = "right" }: { direction?: "right" | "down" }) {
@@ -46,6 +61,23 @@ export default function Home() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [depth, setDepth] = useState<"quick" | "standard" | "deep">("standard");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [historyBusy, setHistoryBusy] = useState<string | null>(null);
+
+  async function loadHistory() {
+    try {
+      const response = await fetch("/api/history");
+      const data = await response.json();
+      if (response.ok && Array.isArray(data.sessions)) setHistory(data.sessions);
+    } catch {
+      // Không tải được lịch sử — bỏ qua, không chặn trang.
+    }
+  }
+
+  useEffect(() => {
+    loadHistory();
+  }, []);
 
   useEffect(() => {
     // Khôi phục mức độ phân tích đã lưu từ lần trước (nếu có).
@@ -134,7 +166,9 @@ export default function Home() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Không thể bắt đầu phiên hướng dẫn.");
       setMessages([{ role: "assistant", text: data.text }]);
+      setSessionId(data.sessionId ?? null);
       setSubmitted(true);
+      loadHistory();
       window.setTimeout(() => {
         document.getElementById("phien-huong-dan")?.scrollIntoView({ behavior: "smooth" });
       }, 60);
@@ -149,7 +183,7 @@ export default function Home() {
     event.preventDefault();
     const nextAnswer = answer.trim();
     if (!nextAnswer || !file || loading) return;
-    const history = messages;
+    const priorMessages = messages;
     setMessages((current) => [...current, { role: "user", text: nextAnswer }]);
     setAnswer("");
     setLoading(true);
@@ -160,7 +194,8 @@ export default function Home() {
       form.append("role", role.trim());
       form.append("depth", depth);
       form.append("answer", nextAnswer);
-      form.append("history", JSON.stringify(history));
+      form.append("history", JSON.stringify(priorMessages));
+      if (sessionId) form.append("sessionId", sessionId);
       const response = await fetch("/api/review", { method: "POST", body: form });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Không thể gửi câu trả lời.");
@@ -179,6 +214,51 @@ export default function Home() {
     setMessages([]);
     setAnswer("");
     setError("");
+    setSessionId(null);
+    loadHistory();
+  }
+
+  async function resumeSession(id: string) {
+    if (historyBusy) return;
+    setHistoryBusy(id);
+    setError("");
+    try {
+      const response = await fetch(`/api/history/${id}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Không mở lại được phiên này.");
+      const restored = base64ToFile(data.pdfBase64, data.fileName);
+      setFile(restored);
+      setRole(data.role);
+      if (["quick", "standard", "deep"].includes(data.depth)) {
+        setDepth(data.depth as "quick" | "standard" | "deep");
+      }
+      setMessages(Array.isArray(data.messages) ? data.messages : []);
+      setSessionId(data.id);
+      setSubmitted(true);
+      window.setTimeout(() => {
+        document.getElementById("phien-huong-dan")?.scrollIntoView({ behavior: "smooth" });
+      }, 60);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Không mở lại được phiên này.");
+    } finally {
+      setHistoryBusy(null);
+    }
+  }
+
+  async function deleteSession(id: string) {
+    if (historyBusy) return;
+    setHistoryBusy(id);
+    try {
+      const response = await fetch(`/api/history/${id}`, { method: "DELETE" });
+      if (response.ok) {
+        setHistory((current) => current.filter((item) => item.id !== id));
+        if (sessionId === id) setSessionId(null);
+      }
+    } catch {
+      // Xóa thất bại — giữ nguyên danh sách.
+    } finally {
+      setHistoryBusy(null);
+    }
   }
 
   return (
@@ -287,6 +367,45 @@ export default function Home() {
         <div><span className="line-icon">⌕</span><strong>Hỏi đến khi có bằng chứng</strong></div>
         <div><span className="line-icon">✎</span><strong>Sửa từng mục, không viết hộ</strong></div>
       </section>
+
+      {history.length > 0 && (
+        <section className="history-section" id="lich-su">
+          <div className="history-heading">
+            <p className="eyebrow">LỊCH SỬ HỒ SƠ CỦA EM</p>
+            <h2>Mở lại phiên hướng dẫn trước</h2>
+            <p>Chỉ trình duyệt này thấy được lịch sử của em. Mở lại là tiếp tục hỏi đáp ngay, không cần tải lại CV.</p>
+          </div>
+          <div className="history-list">
+            {history.map((item) => (
+              <article key={item.id} className={sessionId === item.id ? "current" : ""}>
+                <div className="history-info">
+                  <strong>{item.fileName}</strong>
+                  <span>
+                    Vị trí: {item.role} · {item.messageCount} lượt trao đổi ·{" "}
+                    {new Date(item.updatedAt).toLocaleDateString("vi-VN")}
+                  </span>
+                </div>
+                <div className="history-actions">
+                  <button
+                    className="button button-green"
+                    onClick={() => resumeSession(item.id)}
+                    disabled={historyBusy !== null || loading}
+                  >
+                    {historyBusy === item.id ? "Đang mở…" : "Mở lại"}
+                  </button>
+                  <button
+                    className="text-link history-delete"
+                    onClick={() => deleteSession(item.id)}
+                    disabled={historyBusy !== null || loading}
+                  >
+                    Xóa
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       {submitted && (
         <section className="review-session" id="phien-huong-dan" aria-live="polite">

@@ -1,1 +1,2 @@
 - [Gemini migration](gemini-migration.md) — app uses Gemini (stateless, PDF-only, model from GEMINI_MODEL secret, no hardcoded fallback); user rejected OpenAI.
+- [Workerd + Postgres](workerd-db.md) — never reuse pg connections across requests in workerd; per-request Client only; DB is helium proxy (not Neon); thinkingBudget 0 rejected.

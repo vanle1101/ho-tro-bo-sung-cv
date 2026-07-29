@@ -1,4 +1,5 @@
 import { GVHD_SYSTEM_PROMPT } from "../../../lib/gvhd-prompt";
+import { browserCookieHeader, newBrowserId, readBrowserId, withDb } from "../../../lib/db";
 
 export const runtime = "nodejs";
 
@@ -25,7 +26,7 @@ function firstTurnText(role: string, fileName: string) {
 }
 
 const DEPTH_BUDGET: Record<string, number> = {
-  quick: 0,
+  quick: 1024,
   standard: 8192,
   deep: 24576,
 };
@@ -87,6 +88,7 @@ export async function POST(request: Request) {
     const historyRaw = String(form.get("history") || "");
     const rawDepth = String(form.get("depth") || "").trim();
     const depth = ["quick", "standard", "deep"].includes(rawDepth) ? rawDepth : "standard";
+    const sessionIdRaw = String(form.get("sessionId") || "").trim();
 
     if (!(file instanceof File)) {
       return Response.json({ error: "Em chưa gửi file CV." }, { status: 400 });
@@ -152,7 +154,60 @@ export async function POST(request: Request) {
       contents.push({ role: "user", parts: [{ text: answer }] });
     }
 
-    return Response.json(await callGemini(contents, depth));
+    const result = await callGemini(contents, depth);
+
+    // Lưu lịch sử theo trình duyệt. Nếu lưu thất bại thì phiên vẫn tiếp tục bình thường.
+    let browserId = readBrowserId(request);
+    let setCookie: string | null = null;
+    if (!browserId) {
+      browserId = newBrowserId();
+      setCookie = browserCookieHeader(browserId);
+    }
+    let sessionId: string | null = null;
+    try {
+      sessionId = await withDb(async (db) => {
+        if (answer && sessionIdRaw) {
+          // Lượt tiếp theo của một phiên đã lưu — chỉ ghi nếu phiên thuộc đúng trình duyệt này.
+          const owned = await db.query(
+            "UPDATE cv_sessions SET updated_at = now() WHERE id = $1 AND browser_id = $2 RETURNING id",
+            [sessionIdRaw, browserId],
+          );
+          if (!owned.rowCount) return null;
+          try {
+            await db.query("BEGIN");
+            await db.query(
+              "INSERT INTO cv_messages (session_id, role, text) VALUES ($1, 'user', $2), ($1, 'assistant', $3)",
+              [sessionIdRaw, answer, result.text],
+            );
+            await db.query("COMMIT");
+          } catch (txError) {
+            await db.query("ROLLBACK").catch(() => {});
+            throw txError;
+          }
+          return sessionIdRaw;
+        }
+        if (!answer) {
+          // Lượt đầu tiên — tạo phiên mới kèm file CV.
+          const inserted = await db.query(
+            "INSERT INTO cv_sessions (browser_id, file_name, role, depth, pdf_base64) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+            [browserId, file.name, role, depth, base64],
+          );
+          const newId: string = inserted.rows[0].id;
+          await db.query(
+            "INSERT INTO cv_messages (session_id, role, text) VALUES ($1, 'assistant', $2)",
+            [newId, result.text],
+          );
+          return newId;
+        }
+        return null;
+      });
+    } catch (persistError) {
+      console.error("[review] history save failed:", persistError);
+    }
+
+    const headers = new Headers({ "Content-Type": "application/json" });
+    if (setCookie) headers.set("Set-Cookie", setCookie);
+    return new Response(JSON.stringify({ ...result, sessionId }), { headers });
   } catch (error) {
     const message = error instanceof Error ? error.message : "UNKNOWN";
     if (message === "MISSING_API_KEY") {
