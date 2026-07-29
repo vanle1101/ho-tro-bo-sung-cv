@@ -48,6 +48,18 @@ export default function Home() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   useEffect(() => {
+    // Khôi phục mức độ phân tích đã lưu từ lần trước (nếu có).
+    try {
+      const saved = window.localStorage.getItem("analysisDepth");
+      if (saved === "quick" || saved === "standard" || saved === "deep") {
+        setDepth(saved);
+      }
+    } catch {
+      // localStorage không khả dụng — giữ mặc định "standard".
+    }
+  }, []);
+
+  useEffect(() => {
     // Hiệu ứng hiện dần từng khối khi cuộn trang (bỏ qua hero — đã có hiệu ứng load riêng).
     if (typeof IntersectionObserver === "undefined") return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -244,7 +256,18 @@ export default function Home() {
 
           <label className="field">
             <span>Mức độ phân tích</span>
-            <select value={depth} onChange={(e) => setDepth(e.target.value as "quick" | "standard" | "deep")}>
+            <select
+              value={depth}
+              onChange={(e) => {
+                const next = e.target.value as "quick" | "standard" | "deep";
+                setDepth(next);
+                try {
+                  window.localStorage.setItem("analysisDepth", next);
+                } catch {
+                  // localStorage không khả dụng — bỏ qua việc lưu.
+                }
+              }}
+            >
               <option value="quick">Nhanh — phản hồi tức thì, phù hợp thử lần đầu</option>
               <option value="standard">Tiêu chuẩn — cân bằng tốc độ và chiều sâu (mặc định)</option>
               <option value="deep">Sâu — hỏi kỹ nhất, phù hợp hồ sơ quan trọng</option>
