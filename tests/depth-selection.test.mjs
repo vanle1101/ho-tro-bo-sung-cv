@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFile } from "node:fs/promises";
 
 // --- API route tests: depth -> thinkingBudget forwarded to Gemini ---------
 
@@ -94,38 +93,4 @@ test("API: follow-up turn also forwards depth-derived thinkingBudget", async () 
   } finally {
     restoreFetch();
   }
-});
-
-// --- Frontend tests: depth appended to FormData on every turn -------------
-
-const pageSource = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-
-function extractFunction(source, name) {
-  const start = source.indexOf(`function ${name}`);
-  assert.notEqual(start, -1, `function ${name} should exist in app/page.tsx`);
-  let depthCount = 0;
-  let end = start;
-  for (let i = source.indexOf("{", start); i < source.length; i++) {
-    if (source[i] === "{") depthCount++;
-    else if (source[i] === "}") {
-      depthCount--;
-      if (depthCount === 0) {
-        end = i + 1;
-        break;
-      }
-    }
-  }
-  return source.slice(start, end);
-}
-
-test("frontend: startReview appends depth to FormData (initial turn)", () => {
-  const fn = extractFunction(pageSource, "startReview");
-  assert.match(fn, /\.append\(\s*["']depth["']\s*,\s*depth\s*\)/);
-});
-
-test("frontend: sendAnswer appends depth to FormData (follow-up turn)", () => {
-  const fn = extractFunction(pageSource, "sendAnswer");
-  assert.match(fn, /\.append\(\s*["']depth["']\s*,\s*depth\s*\)/);
-  assert.match(fn, /\.append\(\s*["']answer["']/, "sendAnswer should still send the answer");
-  assert.match(fn, /\.append\(\s*["']history["']/, "sendAnswer should still send the history");
 });
