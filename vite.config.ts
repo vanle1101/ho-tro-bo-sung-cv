@@ -47,9 +47,6 @@ export default defineConfig(async () => {
   process.env.WRANGLER_LOG_PATH ??= ".wrangler/logs";
   process.env.MINIFLARE_REGISTRY_PATH ??= ".wrangler/registry";
 
-  // Wrangler snapshots its log path while the Cloudflare plugin is imported.
-  const { cloudflare } = await import("@cloudflare/vite-plugin");
-
   return {
     server: {
       host: "0.0.0.0",
@@ -58,9 +55,14 @@ export default defineConfig(async () => {
         ? { watch: { useFsEvents: false, usePolling: true } }
         : {}),
     },
-    ssr: {
-      external: ["pg", "pg-types", "pg-int8", "drizzle-orm/node-postgres"],
-      noExternal: [],
+    resolve: {
+      alias: {
+        "pg-int8": "./node_modules/pg/node_modules/pg-int8",
+        "postgres-array": "./node_modules/pg/node_modules/postgres-array",
+        "postgres-bytea": "./node_modules/pg/node_modules/postgres-bytea",
+        "postgres-date": "./node_modules/pg/node_modules/postgres-date",
+        "postgres-interval": "./node_modules/pg/node_modules/postgres-interval",
+      },
     },
     optimizeDeps: {
       exclude: ["pg", "pg-types", "pg-int8", "drizzle-orm"],
@@ -68,11 +70,6 @@ export default defineConfig(async () => {
     plugins: [
       vinext(),
       sites(),
-      cloudflare({
-        viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
-        inspectorPort: false,
-        config: localBindingConfig,
-      }),
     ],
   };
 });
