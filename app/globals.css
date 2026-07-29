@@ -14,7 +14,7 @@
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; scroll-padding-top: 100px; }
 
 body {
   margin: 0;
@@ -160,7 +160,7 @@ h1, h2, h3, p { margin-top: 0; }
 .red-circle::after {
   content: "";
   position: absolute;
-  inset: -7px -14px -2px -12px;
+  inset: -0.1em -0.24em -0.03em -0.2em;
   border: 2px solid var(--red);
   border-radius: 52% 48% 47% 53%;
   transform: rotate(-6deg);
@@ -211,7 +211,7 @@ h1, h2, h3, p { margin-top: 0; }
   font-size: 17px;
   transform: rotate(-7deg);
 }
-.note-proof { position: absolute; left: -80px; bottom: 72px; }
+.note-proof { display: inline-block; margin: 22px 0 0 4px; }
 
 .intake-card {
   background: rgba(251,250,246,.96);
