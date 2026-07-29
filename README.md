@@ -1,118 +1,80 @@
-# VanLe personal project — Cô Hướng Dẫn CV
+# CV-Support
 
-Đây là website dùng OpenAI API để đọc CV, chẩn đoán theo vị trí ứng tuyển và
-phỏng vấn sâu từng lượt trước khi sửa. Replit chỉ chạy giao diện cùng lớp server
-bảo vệ API key.
+**VanLe personal project**
 
-Để import và chạy trên Replit, xem **[README-REPLIT.md](./README-REPLIT.md)**.
+CV-Support là dự án được xây dựng để hỗ trợ bản thân mình xem lại, phân tích và chỉnh sửa CV. Bên cạnh đó, dự án cũng hướng đến việc hỗ trợ các bạn sinh viên đang cần hoàn thiện CV trước khi ứng tuyển.
 
----
+Ứng dụng giúp đọc CV, xác định những nội dung còn thiếu hoặc chưa rõ, đặt câu hỏi để hiểu sâu hơn về kinh nghiệm của người dùng và đưa ra gợi ý chỉnh sửa phù hợp với vị trí ứng tuyển.
 
-## Thông tin kỹ thuật
+## Trải nghiệm
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+Truy cập ứng dụng tại: **[https://van-le-project.replit.app/](https://van-le-project.replit.app/)**
 
-## Prerequisites
+## Tính năng chính
 
-- Node.js `>=22.13.0`
-- Linux with `flock`, `curl`, and GNU `timeout`
+- Tải lên và phân tích CV ở định dạng PDF.
+- Đánh giá CV theo vị trí ứng tuyển.
+- Đặt câu hỏi để làm rõ kinh nghiệm, kỹ năng và dự án.
+- Gợi ý cách trình bày nội dung CV rõ ràng, có căn cứ hơn.
+- Duy trì lịch sử trao đổi trong phiên để hỗ trợ chỉnh sửa theo từng bước.
 
-## Sites Lifecycle
+## Công nghệ sử dụng
 
-The Sites lifecycle CLI runs the locked dependency install before returning this checkout. Edit the source under `app/`, then checkpoint when a coherent milestone is ready to inspect or share. The remote Sites builder runs `npm run build` against the pushed commit. Do not repeat install or build as a normal pre-checkpoint step.
+- TypeScript
+- React 19
+- Next.js 16
+- Vinext và Vite
+- Gemini API
+- Replit
 
-This starter does not use `wrangler.jsonc`.
+## Yêu cầu
 
-`install:ci` is intentionally a single, non-retrying `npm ci`. It refuses a concurrent install for the same project, consumes a matching image-seeded npm cache with `--prefer-offline` while retaining registry fallback for a missing cache object, otherwise downloads and verifies the complete vinext tarball recorded in `package-lock.json`, limits npm to one socket, and terminates a stalled install. `build` applies a short timeout and then validates the Sites artifact. These helpers target Linux and use GNU `timeout`; they are not native macOS scripts.
+- Node.js `>= 22.13.0`
+- Gemini API key từ [Google AI Studio](https://aistudio.google.com/apikey)
 
-Scripts that need writable project-scoped home, npm, XDG, and temporary paths use `scripts/sites-env.sh`. The `dev` and `start` scripts honor the caller's runtime environment and keep Wrangler logs inside the checkout. The generated `.sites-runtime/` directory is disposable and ignored by Git.
+## Cài đặt và chạy trên máy
 
-## Included Shape
+1. Clone repository:
 
-- edit site code under `app/`
-- `app/chatgpt-auth.ts` provides optional dispatch-owned ChatGPT sign-in helpers
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/index.ts` reads the D1 binding from the Cloudflare Worker environment
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
+   ```bash
+   git clone https://github.com/vanle1101/ho-tro-bo-sung-cv.git
+   cd ho-tro-bo-sung-cv
+   ```
 
-## Workspace Auth Headers
+2. Cài đặt thư viện:
 
-OpenAI workspace sites can read the current user's email from
-`oai-authenticated-user-email`.
+   ```bash
+   npm install
+   ```
 
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
+3. Cấu hình biến môi trường:
 
-Treat the full name as optional and fall back to email when it is absent:
+   ```env
+   GEMINI_API_KEY=your_api_key
+   GEMINI_MODEL=gemini-2.5-flash
+   ```
 
-```tsx
-import { headers } from "next/headers";
+4. Khởi động ứng dụng:
 
-export default async function Home() {
-  const requestHeaders = await headers();
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
+   ```bash
+   npm run dev -- --host 0.0.0.0 --port 3000
+   ```
 
-  const displayName = fullName ?? email;
-  // ...
-}
+5. Mở địa chỉ được hiển thị trong terminal.
+
+## Kiểm tra mã nguồn
+
+```bash
+npm run lint
+npm test
 ```
 
-## Optional Dispatch-Owned ChatGPT Sign-In
+## Chạy trên Replit
 
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs
-optional or required ChatGPT sign-in:
+Hướng dẫn cấu hình và triển khai trên Replit được trình bày trong **[README-REPLIT.md](./README-REPLIT.md)**.
 
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send
-  anonymous visitors through Sign in with ChatGPT.
-- Use `chatGPTSignInPath(returnTo)` and `chatGPTSignOutPath(returnTo)` for
-  browser links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in
-  or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because
-  they depend on per-request identity headers.
+## Lưu ý
 
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the
-OAuth cookies, and identity header injection. Do not implement app routes for
-those reserved paths. Routes that do not import and call the helper remain
-anonymous-compatible.
-
-SIWC establishes identity only; it does not prove workspace membership. Use the
-Sites hosting platform's access policy controls for workspace-wide restrictions,
-or enforce explicit server-side membership or allowlist checks.
-
-Use SIWC for account pages, user-specific dashboards, saved records, and write
-actions tied to the current ChatGPT user. Leave public content anonymous.
-
-## Diagnostic Commands
-
-- `npm run install:ci`: perform the one bounded lockfile install
-- `npm run dev`: start the Vite/Vinext development server
-- `npm run build`: build and validate the deployable Sites artifact
-- `npm run start`: start the built Vinext application
-- `npm test`: build, validate, and verify the rendered development-preview metadata
-- `npm run validate:artifact`: recheck an existing artifact's manifest and ESM `default.fetch` export
-- `npm run db:generate`: generate Drizzle migrations after schema changes
-
-Use build and validation commands for targeted diagnosis after a remote failure, not as part of the normal checkpoint path.
-
-The timeout defaults can be overridden for a controlled canary with `SITES_INSTALL_TIMEOUT`, `SITES_INSTALL_KILL_AFTER`, `SITES_BUILD_TIMEOUT`, and `SITES_BUILD_KILL_AFTER`. A timeout fails the command; the helpers never retry an unchanged install or build.
-
-## Learn More
-
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+- Ứng dụng hiện chỉ hỗ trợ CV dạng PDF, dung lượng tối đa 10 MB.
+- `GEMINI_API_KEY` phải được lưu trong biến môi trường hoặc Replit Secrets, không ghi trực tiếp vào mã nguồn.
+- Tên model Gemini có thể thay đổi theo thời gian; cập nhật `GEMINI_MODEL` khi model đang dùng không còn được hỗ trợ.
