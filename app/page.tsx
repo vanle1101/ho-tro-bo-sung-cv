@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, DragEvent, FormEvent, useMemo, useState } from "react";
+import { ChangeEvent, DragEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
 type ChatMessage = {
@@ -45,6 +45,37 @@ export default function Home() {
   const [answer, setAnswer] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+
+  useEffect(() => {
+    // Hiệu ứng hiện dần từng khối khi cuộn trang (bỏ qua hero — đã có hiệu ứng load riêng).
+    if (typeof IntersectionObserver === "undefined") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const blocks = Array.from(
+      document.querySelectorAll<HTMLElement>("main > section:not(.hero), main > footer"),
+    );
+    let observer: IntersectionObserver;
+    try {
+      observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("in-view");
+              observer.unobserve(entry.target);
+            }
+          }
+        },
+        { threshold: 0.12, rootMargin: "0px 0px -40px 0px" },
+      );
+      blocks.forEach((el) => observer.observe(el));
+    } catch {
+      // Nếu không tạo được observer, giữ nguyên trang hiển thị bình thường.
+      blocks.forEach((el) => el.classList.remove("reveal"));
+      return;
+    }
+    // Chỉ ẩn các khối sau khi observer đã sẵn sàng, tránh trang bị ẩn vĩnh viễn.
+    blocks.forEach((el) => el.classList.add("reveal"));
+    return () => observer.disconnect();
+  }, [submitted]);
 
   const canStart = file && role.trim().length > 2;
   const fileSize = useMemo(
